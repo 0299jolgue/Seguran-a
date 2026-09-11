@@ -4,6 +4,7 @@ import platform
 import re
 import shutil
 import urllib.request
+import io
 from pathlib import Path
 
 import discord
@@ -209,14 +210,21 @@ def render(report):
 def send_webhook(text: str):
     if not WEBHOOK:
         return
-    payload = json.dumps({"content": text[:1900]}).encode("utf-8")
+    boundary = "----PingHostAuditBoundary"
+    filename = "container-isolation-audit.txt"
+    file_content = text.encode("utf-8")
+    body = (
+        f"--{boundary}\\r\\n"
+        f"Content-Disposition: form-data; name=files[0]; filename={filename}\\r\\n"
+        "Content-Type: text/plain; charset=utf-8\\r\\n\\r\\n"
+    ).encode("utf-8") + file_content + f"\\r\\n--{boundary}--\\r\\n".encode("utf-8")
     request = urllib.request.Request(
         WEBHOOK,
-        data=payload,
-        headers={"Content-Type": "application/json"},
+        data=body,
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=10):
+    with urllib.request.urlopen(request, timeout=15):
         pass
 
 
