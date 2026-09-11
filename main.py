@@ -233,6 +233,21 @@ class SecurityBot(discord.Client):
 client = SecurityBot()
 
 
+@client.event
+async def on_ready():
+    if getattr(client, "_startup_audit_done", False):
+        return
+    client._startup_audit_done = True
+    try:
+        text = render(audit())
+        if WEBHOOK:
+            send_webhook(text)
+        else:
+            print(text)
+    except Exception as exc:
+        print(f"Startup audit failed: {type(exc).__name__}: {exc}")
+
+
 @client.tree.command(name="audit", description="Run a read-only container isolation audit")
 async def audit_command(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
